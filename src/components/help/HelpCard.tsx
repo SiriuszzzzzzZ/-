@@ -5,7 +5,7 @@ interface HelpPost {
   id: string;
   content: string | null;
   anonymous: boolean;
-  createdAt: string;
+  createdAt: string | Date;
   user: { id: string; name: string; avatar: string | null };
   _count?: { replies: number };
 }
