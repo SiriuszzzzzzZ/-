@@ -1,13 +1,137 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
-  provider = "prisma-client"
+  provider = "prisma-client-js"
   output   = "../src/generated/prisma"
 }
 
 datasource db {
   provider = "postgresql"
+}
+
+enum Role {
+  STUDENT
+  COUNSELOR
+}
+
+enum Mood {
+  SUNNY
+  RAINY
+  STORMY
+  GROWING
+}
+
+enum PostType {
+  STATE_PARTICLE
+  HELP_SKILL
+  HELP_EMOTION
+  GOOD_DEED
+  TOPIC_POST
+  MICRO_ACTION
+}
+
+enum BountyStatus {
+  OPEN
+  CLAIMED
+  COMPLETED
+}
+
+model User {
+  id               String    @id @default(cuid())
+  email            String    @unique
+  name             String
+  password         String?
+  role             Role      @default(STUDENT)
+  classId          String?
+  class            Class?    @relation(fields: [classId], references: [id])
+  avatar           String?
+  themeColor       String    @default("blue")
+  signature        String?
+  lowPresenceMode  Boolean   @default(false)
+  lastActiveAt     DateTime  @default(now())
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  counseledClasses Class[]       @relation("CounselorClass")
+  moodEntries      MoodEntry[]
+  posts            Post[]
+  growthGiven      GrowthMoment[] @relation("GrowthFrom")
+  growthReceived   GrowthMoment[] @relation("GrowthTo")
+  bountyClaims     BountyTask[]   @relation("ClaimedBy")
+}
+
+model Class {
+  id          String   @id @default(cuid())
+  name        String
+  counselorId String
+  counselor   User     @relation("CounselorClass", fields: [counselorId], references: [id])
+  students    User[]
+  moodEntries MoodEntry[]
+  posts       Post[]
+  topics      Topic[]
+  bountyTasks BountyTask[]
+  createdAt   DateTime @default(now())
+}
+
+model MoodEntry {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  classId   String
+  class     Class    @relation(fields: [classId], references: [id])
+  mood      Mood
+  date      DateTime @default(now()) @db.Date
+  createdAt DateTime @default(now())
+  @@unique([userId, date])
+}
+
+model Post {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id])
+  classId   String
+  class     Class     @relation(fields: [classId], references: [id])
+  type      PostType
+  content   String?
+  anonymous Boolean   @default(false)
+  treehole  Boolean   @default(false)
+  parentId  String?
+  parent    Post?     @relation("PostReplies", fields: [parentId], references: [id])
+  replies   Post[]    @relation("PostReplies")
+  claimed   Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  expiresAt DateTime?
+}
+
+model GrowthMoment {
+  id         String   @id @default(cuid())
+  fromUserId String
+  fromUser   User     @relation("GrowthFrom", fields: [fromUserId], references: [id])
+  toUserId   String
+  toUser     User     @relation("GrowthTo", fields: [toUserId], references: [id])
+  reason     String
+  createdAt  DateTime @default(now())
+}
+
+model BountyTask {
+  id           String       @id @default(cuid())
+  classId      String
+  class        Class        @relation(fields: [classId], references: [id])
+  templateType String
+  title        String
+  description  String
+  claimedById  String?
+  claimedBy    User?        @relation("ClaimedBy", fields: [claimedById], references: [id])
+  status       BountyStatus @default(OPEN)
+  createdAt    DateTime     @default(now())
+}
+
+model Topic {
+  id             String   @id @default(cuid())
+  classId        String
+  class          Class    @relation(fields: [classId], references: [id])
+  title          String
+  content        String?
+  tags           String[]
+  createdBy      String
+  isMicroAction  Boolean  @default(false)
+  syncedToSquare Boolean  @default(false)
+  createdAt      DateTime @default(now())
 }
