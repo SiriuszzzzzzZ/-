@@ -20,7 +20,7 @@ export default async function MePage() {
 
   // 通知 + 痕迹
   const weekAgo = new Date(Date.now() - 7 * 86400000);
-  const [newGrowth, repliedPosts, myPosts, myShares, myParticles] = await Promise.all([
+  const [newGrowth, repliedPosts, myShares, myParticles] = await Promise.all([
     db.growthMoment.count({ where: { toUserId: user.id, createdAt: { gte: weekAgo } } }),
     // 哪些求助帖收到了回复
     db.post.findMany({
@@ -37,8 +37,6 @@ export default async function MePage() {
         return { postId: parent!.id, classId: parent!.classId, content: parent!.content };
       }));
     }),
-    // 所有自己发的帖子（求助+分享）
-    db.post.findMany({ where: { userId: user.id, type: { in: ["HELP_SKILL", "HELP_EMOTION", "SHARE"] } }, orderBy: { createdAt: "desc" }, take: 10, select: { id: true, classId: true, type: true, content: true, createdAt: true } }),
     db.post.findMany({ where: { userId: user.id, type: "SHARE" }, orderBy: { createdAt: "desc" }, take: 5, select: { content: true, createdAt: true } }),
     db.post.findMany({ where: { userId: user.id, type: "STATE_PARTICLE" }, orderBy: { createdAt: "desc" }, take: 5, select: { content: true, createdAt: true } }),
   ]);

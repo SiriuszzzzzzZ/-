@@ -15,7 +15,6 @@ interface TopicCardData {
 
 export function TopicCard({ topic, classId, isCounselor }: { topic: TopicCardData; classId: string; isCounselor?: boolean }) {
   const router = useRouter();
-  const [deleting, setDeleting] = useState(false);
   const [deleted, setDeleted] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
@@ -60,11 +59,10 @@ export function TopicCard({ topic, classId, isCounselor }: { topic: TopicCardDat
       {isCounselor && (
         <button
           onClick={handleDelete}
-          disabled={deleting}
           className="absolute top-2 right-2 w-6 h-6 rounded-full bg-white/80 text-warm-400 hover:text-coral-500 hover:bg-coral-50 opacity-0 group-hover:opacity-100 transition-all duration-200 flex items-center justify-center text-xs"
           title="删除话题"
         >
-          {deleting ? "..." : "×"}
+          ×
         </button>
       )}
 

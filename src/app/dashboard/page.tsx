@@ -53,7 +53,6 @@ export default async function DashboardPage() {
   );
 
   const totalSignals = classSnapshots.reduce((s, c) => s + c.signalCount, 0);
-  const totalEmotionHelp = classSnapshots.reduce((s, c) => s + c.todayEmotionHelp, 0);
 
   // 树洞词云
   const treeholePosts = await db.post.findMany({

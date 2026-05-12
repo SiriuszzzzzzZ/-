@@ -109,7 +109,7 @@ export default async function GrowthPage() {
           </div>
         ) : (
           <div className="space-y-5">
-            {weekGroups.map((group, gi) => (
+            {weekGroups.map((group) => (
               <div key={group.label} className="space-y-2">
                 <div className="flex items-center gap-2 px-1">
                   <span className="text-[11px] font-medium text-warm-300 tracking-wide">
