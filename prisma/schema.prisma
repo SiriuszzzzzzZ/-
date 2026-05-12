@@ -1,37 +1,10 @@
 generator client {
   provider = "prisma-client-js"
-  output   = "../src/generated/prisma"
 }
 
 datasource db {
-  provider = "postgresql"
-}
-
-enum Role {
-  STUDENT
-  COUNSELOR
-}
-
-enum Mood {
-  SUNNY
-  RAINY
-  STORMY
-  GROWING
-}
-
-enum PostType {
-  STATE_PARTICLE
-  HELP_SKILL
-  HELP_EMOTION
-  GOOD_DEED
-  TOPIC_POST
-  MICRO_ACTION
-}
-
-enum BountyStatus {
-  OPEN
-  CLAIMED
-  COMPLETED
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
 }
 
 model User {
@@ -39,7 +12,7 @@ model User {
   email            String    @unique
   name             String
   password         String?
-  role             Role      @default(STUDENT)
+  role             String    @default("STUDENT")
   classId          String?
   class            Class?    @relation(fields: [classId], references: [id])
   avatar           String?
@@ -76,8 +49,8 @@ model MoodEntry {
   user      User     @relation(fields: [userId], references: [id])
   classId   String
   class     Class    @relation(fields: [classId], references: [id])
-  mood      Mood
-  date      DateTime @default(now()) @db.Date
+  mood      String
+  date      DateTime @default(now())
   createdAt DateTime @default(now())
   @@unique([userId, date])
 }
@@ -88,13 +61,14 @@ model Post {
   user      User      @relation(fields: [userId], references: [id])
   classId   String
   class     Class     @relation(fields: [classId], references: [id])
-  type      PostType
+  type      String
   content   String?
   anonymous Boolean   @default(false)
   treehole  Boolean   @default(false)
   parentId  String?
   parent    Post?     @relation("PostReplies", fields: [parentId], references: [id])
   replies   Post[]    @relation("PostReplies")
+  image     String?
   claimed   Boolean   @default(false)
   createdAt DateTime  @default(now())
   expiresAt DateTime?
@@ -111,16 +85,16 @@ model GrowthMoment {
 }
 
 model BountyTask {
-  id           String       @id @default(cuid())
+  id           String  @id @default(cuid())
   classId      String
-  class        Class        @relation(fields: [classId], references: [id])
+  class        Class   @relation(fields: [classId], references: [id])
   templateType String
   title        String
   description  String
   claimedById  String?
-  claimedBy    User?        @relation("ClaimedBy", fields: [claimedById], references: [id])
-  status       BountyStatus @default(OPEN)
-  createdAt    DateTime     @default(now())
+  claimedBy    User?   @relation("ClaimedBy", fields: [claimedById], references: [id])
+  status       String  @default("OPEN")
+  createdAt    DateTime @default(now())
 }
 
 model Topic {
@@ -129,9 +103,11 @@ model Topic {
   class          Class    @relation(fields: [classId], references: [id])
   title          String
   content        String?
-  tags           String[]
+  tags           String   @default("")
   createdBy      String
   isMicroAction  Boolean  @default(false)
+  isNotice       Boolean  @default(false)
+  image          String?
   syncedToSquare Boolean  @default(false)
   createdAt      DateTime @default(now())
 }

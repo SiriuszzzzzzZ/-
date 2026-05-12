@@ -1,12 +1,15 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { Providers } from "./providers";
 
-export const metadata: Metadata = { title: "辅导员平台", description: "低压力关系基础设施" };
+export const metadata: Metadata = { title: "同窗小栈", description: "低压力关系基础设施" };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="zh-CN">
-      <body className="antialiased font-sans">{children}</body>
+      <body className="antialiased">
+        <Providers>{children}</Providers>
+      </body>
     </html>
   );
 }

@@ -15,11 +15,11 @@ export const MOOD_EMOJI: Record<MoodType, string> = {
 };
 
 export const PARTICLE_OPTIONS = [
-  { id: "passing", label: "今天路过" },
-  { id: "library", label: "在图书馆" },
-  { id: "late_night", label: "深夜还醒着" },
-  { id: "after_class", label: "刚下课" },
-  { id: "free", label: "今天有点空" },
+  { id: "passing", label: "刚刚路过这儿", emoji: "🚶" },
+  { id: "library", label: "在图书馆摸鱼", emoji: "📚" },
+  { id: "late_night", label: "深夜还没睡", emoji: "🌙" },
+  { id: "after_class", label: "刚下课放空", emoji: "🎒" },
+  { id: "free", label: "今天有点闲", emoji: "🍃" },
 ] as const;
 
 export type ParticleType = (typeof PARTICLE_OPTIONS)[number]["id"];

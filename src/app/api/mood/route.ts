@@ -4,13 +4,21 @@ import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { requireClassAccess } from "@/lib/rls";
 import { shouldShowMoodChart, getClassMoodTrend, checkConsecutiveRainy } from "@/lib/mood";
+import { checkSyncTrigger } from "@/lib/growth";
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) return NextResponse.json({ error: "未登录" }, { status: 401 });
 
-  const { classId, mood } = await req.json();
-  if (!classId || !mood) return NextResponse.json({ error: "缺少参数" }, { status: 400 });
+  const { classId: rawClassId, mood } = await req.json();
+  if (!mood) return NextResponse.json({ error: "缺少参数" }, { status: 400 });
+
+  let classId = rawClassId;
+  if (!classId || classId === "counselor-self") {
+    const firstClass = await db.class.findFirst({ where: { counselorId: session.user.id } });
+    if (!firstClass) return NextResponse.json({ error: "未找到班级" }, { status: 400 });
+    classId = firstClass.id;
+  }
 
   try {
     await requireClassAccess(session.user.id, classId);
@@ -27,7 +35,18 @@ export async function POST(req: NextRequest) {
     create: { userId: session.user.id, classId, mood, date: today },
   });
 
-  return NextResponse.json({ success: true, mood: entry.mood });
+  // 同频检查
+  const syncUserId = await checkSyncTrigger(session.user.id, classId);
+  let syncUserName: string | null = null;
+  if (syncUserId) {
+    const syncUser = await db.user.findUnique({ where: { id: syncUserId }, select: { name: true } });
+    syncUserName = syncUser?.name || null;
+  }
+
+  return NextResponse.json({
+    success: true, mood: entry.mood,
+    sync: syncUserName ? { userId: syncUserId, userName: syncUserName } : null,
+  });
 }
 
 export async function GET(req: NextRequest) {

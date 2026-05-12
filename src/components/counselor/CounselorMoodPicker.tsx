@@ -1,5 +1,4 @@
 "use client";
-
 import { useState } from "react";
 import { MoodType, MOOD_LABELS, MOOD_EMOJI } from "@/types";
 
@@ -17,22 +16,26 @@ export function CounselorMoodPicker() {
   }
 
   return (
-    <div className="bg-white rounded-xl border border-gray-100 p-4">
-      <p className="text-sm text-gray-500 text-center mb-3">今天你的状态？学生可以看到</p>
-      <div className="grid grid-cols-4 gap-2">
-        {moods.map((m) => (
-          <button
-            key={m}
-            onClick={() => submit(m)}
-            className={`flex flex-col items-center p-2 rounded-xl transition-colors ${
-              selected === m ? "bg-indigo-50" : "hover:bg-gray-50"
-            }`}
-          >
-            <span className="text-2xl mb-1">{MOOD_EMOJI[m]}</span>
-            <span className="text-xs text-gray-600">{MOOD_LABELS[m].slice(2)}</span>
-          </button>
-        ))}
-      </div>
+    <div className="flex justify-center gap-2 sm:gap-3 flex-wrap">
+      {moods.map((m, i) => (
+        <button
+          key={m}
+          onClick={() => submit(m)}
+          className={`group flex flex-col items-center gap-2 p-3 rounded-3xl transition-all duration-200 hover:-translate-y-1 active:scale-95 animate-float-up ${
+            selected === m
+              ? "bg-coral-50 shadow-soft"
+              : "bg-white/60 shadow-soft hover:shadow-soft-lg"
+          }`}
+          style={{ animationDelay: `${i * 80}ms` }}
+        >
+          <span className="text-3xl transition-transform duration-200 group-hover:scale-110">
+            {MOOD_EMOJI[m]}
+          </span>
+          <span className="text-xs text-warm-400 font-medium">
+            {MOOD_LABELS[m].replace(/^[^\s]+\s/, "")}
+          </span>
+        </button>
+      ))}
     </div>
   );
 }

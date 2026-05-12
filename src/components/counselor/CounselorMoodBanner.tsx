@@ -1,6 +1,5 @@
 import { db } from "@/lib/db";
-import { MOOD_EMOJI } from "@/types";
-import { Card } from "@/components/ui/Card";
+import { MOOD_EMOJI, MoodType } from "@/types";
 
 export async function CounselorMoodBanner({ classId }: { classId: string }) {
   const classData = await db.class.findUnique({
@@ -24,19 +23,19 @@ export async function CounselorMoodBanner({ classId }: { classId: string }) {
 
   if (todayMood.mood === "STORMY") {
     return (
-      <Card className="bg-amber-50 border-amber-100 text-center py-3">
-        <p className="text-sm text-amber-700">
-          {MOOD_EMOJI[todayMood.mood]} 辅导员今天也忙飞了，大家温柔对待
+      <div className="bg-peach-50 border border-peach-200 rounded-4xl px-5 py-3 text-center animate-pop-spring">
+        <p className="text-sm text-peach-600 font-medium">
+          {MOOD_EMOJI[todayMood.mood as MoodType]} 辅导员今天也忙飞了，大家温柔对待
         </p>
-      </Card>
+      </div>
     );
   }
 
   return (
-    <Card className="bg-blue-50 border-blue-100 text-center py-3">
-      <p className="text-sm text-blue-600">
-        {MOOD_EMOJI[todayMood.mood]} 辅导员今天也有点累，互相理解
+    <div className="bg-mint-50 border border-mint-200 rounded-4xl px-5 py-3 text-center animate-pop-spring">
+      <p className="text-sm text-mint-600 font-medium">
+        {MOOD_EMOJI[todayMood.mood as MoodType]} 辅导员今天也有点累，互相理解
       </p>
-    </Card>
+    </div>
   );
 }
