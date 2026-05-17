@@ -13,7 +13,9 @@ interface TopicCardData {
   image?: string | null;
 }
 
-export function TopicCard({ topic, classId, isCounselor }: { topic: TopicCardData; classId: string; isCounselor?: boolean }) {
+export function TopicCard({ topic, classId, isCounselor, interactionCount, microCount }: {
+  topic: TopicCardData; classId: string; isCounselor?: boolean; interactionCount?: number; microCount?: number;
+}) {
   const router = useRouter();
   const [deleted, setDeleted] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -27,18 +29,25 @@ export function TopicCard({ topic, classId, isCounselor }: { topic: TopicCardDat
 
   const tagList = topic.tags ? topic.tags.split(",").filter(Boolean) : [];
   const isNotice = topic.isNotice;
+  const count = interactionCount ?? 0;
 
   return (
     <div
       onClick={() => router.push(`/class/${classId}/topic/${topic.id}`)}
-      className="bg-white/60 rounded-2xl p-3.5 shadow-soft hover:shadow-soft-lg transition-all duration-200 hover:-translate-y-0.5 cursor-pointer relative group"
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); router.push(`/class/${classId}/topic/${topic.id}`); } }}
+      tabIndex={0}
+      role="button"
+      aria-label={`话题：${topic.title}`}
+      className="bg-white/60 rounded-2xl p-3.5 shadow-soft hover:shadow-soft-lg transition-all duration-200 hover:-translate-y-0.5 cursor-pointer relative group focus-visible:ring-2 focus-visible:ring-coral-300 focus-visible:ring-offset-2"
     >
       <div className="flex items-center gap-2 mb-1.5 pr-6">
         {isNotice && (
           <span className="text-xs bg-peach-100 text-peach-600 px-2 py-0.5 rounded-full font-medium">📢 公告</span>
         )}
         {topic.isMicroAction && (
-          <span className="text-xs bg-mint-100 text-mint-600 px-2 py-0.5 rounded-full font-medium">🏃 微行动</span>
+          <span className="text-xs bg-mint-100 text-mint-600 px-2 py-0.5 rounded-full font-medium">
+            🏃 微行动{microCount !== undefined && <span className="ml-1">{microCount}人</span>}
+          </span>
         )}
         {!isNotice && !topic.isMicroAction && (
           <span className="text-xs bg-coral-50 text-coral-400 px-2 py-0.5 rounded-full font-medium">💬 话题</span>
@@ -46,6 +55,9 @@ export function TopicCard({ topic, classId, isCounselor }: { topic: TopicCardDat
         {tagList.map((t: string) => (
           <span key={t} className="text-xs text-warm-400">#{t.trim()}</span>
         ))}
+        {count > 0 && (
+          <span className="text-[10px] text-mint-500 ml-auto">{count} 人参与</span>
+        )}
       </div>
       <h4 className="text-sm font-medium text-warm-800">{topic.title}</h4>
       {topic.content && (
@@ -55,7 +67,6 @@ export function TopicCard({ topic, classId, isCounselor }: { topic: TopicCardDat
         <img src={topic.image} alt="" className="w-full h-32 object-cover rounded-xl mt-2" />
       )}
 
-      {/* 辅导员删除按钮 */}
       {isCounselor && (
         <button
           onClick={handleDelete}

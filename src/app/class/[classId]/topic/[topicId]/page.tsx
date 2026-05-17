@@ -23,12 +23,23 @@ export default async function TopicDetailPage({
   const isNotice = topicExt.isNotice;
   const topicImage = topicExt.image;
 
-  // 获取参与讨论的帖子
   const discussions = await db.post.findMany({
-    where: { classId: params.classId, type: "TOPIC_POST", parentId: params.topicId },
-    include: { user: { select: { id: true, name: true, avatar: true } } },
+    where: { classId: params.classId, type: "TOPIC_POST", topicId: params.topicId },
+    select: {
+      id: true, content: true, createdAt: true,
+      user: { select: { name: true } },
+      image: true,
+    },
     orderBy: { createdAt: "asc" },
   });
+
+  const initialDiscussions = discussions.map((d) => ({
+    id: d.id,
+    content: d.content || "",
+    createdAt: d.createdAt,
+    user: { name: d.user.name },
+    image: d.image,
+  }));
 
   return (
     <div className="space-y-4 animate-float-up">
@@ -37,7 +48,7 @@ export default async function TopicDetailPage({
       </Link>
 
       <div className="bg-white/60 rounded-3xl p-5 shadow-soft space-y-3">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           {isNotice && <span className="text-xs bg-peach-100 text-peach-600 px-2 py-0.5 rounded-full font-medium">📢 公告</span>}
           {topic.isMicroAction && <span className="text-xs bg-mint-100 text-mint-600 px-2 py-0.5 rounded-full font-medium">🏃 微行动</span>}
           {!isNotice && !topic.isMicroAction && <span className="text-xs bg-coral-50 text-coral-400 px-2 py-0.5 rounded-full">💬 话题</span>}
@@ -61,20 +72,12 @@ export default async function TopicDetailPage({
         <p className="text-xs font-medium text-warm-400">
           {discussions.length > 0 ? `${discussions.length} 人参与讨论` : "还没有人参与，来做第一个吧"}
         </p>
-        {discussions.map((d) => (
-          <div key={d.id} className="bg-white/40 rounded-2xl px-4 py-3">
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-xs font-medium text-warm-600">{d.user.name}</span>
-              <span className="text-xs text-warm-300">{new Date(d.createdAt).toLocaleString("zh-CN")}</span>
-            </div>
-            <p className="text-sm text-warm-600">{d.content}</p>
-            {(d as { image?: string | null }).image && <img src={(d as { image?: string | null }).image!} alt="" className="w-24 h-24 rounded-xl object-cover mt-2" />}
-          </div>
-        ))}
+        <TopicDiscuss
+          classId={params.classId}
+          topicId={params.topicId}
+          initialDiscussions={initialDiscussions}
+        />
       </div>
-
-      {/* 参与表单 */}
-      <TopicDiscuss classId={params.classId} topicId={params.topicId} />
     </div>
   );
 }

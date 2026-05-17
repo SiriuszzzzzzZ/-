@@ -70,7 +70,7 @@ export function SquareTopicForm({ classes, onClose, onSent }: { classes: { id: s
       >
         <div className="flex items-center justify-between">
           <h3 className="font-semibold text-warm-800">发布话题到广场</h3>
-          <button onClick={onClose} className="text-warm-400 hover:text-warm-600 text-lg">×</button>
+          <button onClick={onClose} aria-label="关闭发布话题面板" className="tap-target text-warm-400 hover:text-warm-600 text-lg">×</button>
         </div>
 
         {/* 类型选择 */}
@@ -96,7 +96,9 @@ export function SquareTopicForm({ classes, onClose, onSent }: { classes: { id: s
 
         {/* 班级选择 */}
         <div>
+          <label htmlFor="square-topic-class" className="visually-hidden">选择发布到哪个班级</label>
           <select
+            id="square-topic-class"
             value={classId}
             onChange={(e) => setClassId(e.target.value)}
             className="w-full rounded-2xl border border-warm-200 bg-warm-50/50 px-4 py-2.5 text-sm text-warm-700 focus:outline-none focus:ring-2 focus:ring-coral-300"
@@ -108,7 +110,9 @@ export function SquareTopicForm({ classes, onClose, onSent }: { classes: { id: s
         </div>
 
         {/* 标题 */}
+        <label htmlFor="square-topic-title" className="visually-hidden">广场话题标题</label>
         <input
+          id="square-topic-title"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="话题标题"
@@ -117,7 +121,9 @@ export function SquareTopicForm({ classes, onClose, onSent }: { classes: { id: s
         />
 
         {/* 描述 */}
+        <label htmlFor="square-topic-content" className="visually-hidden">广场话题描述</label>
         <textarea
+          id="square-topic-content"
           value={content}
           onChange={(e) => setContent(e.target.value)}
           placeholder="说点什么吧（可选）"
@@ -152,7 +158,7 @@ export function SquareTopicForm({ classes, onClose, onSent }: { classes: { id: s
         <button
           onClick={submit}
           disabled={sending || !title.trim() || !classId}
-          className="w-full py-2.5 rounded-2xl bg-coral-400 text-white font-medium hover:bg-coral-500 disabled:opacity-40 transition-colors"
+          className="w-full min-h-11 py-2.5 rounded-2xl bg-coral-400 text-white font-medium hover:bg-coral-500 disabled:opacity-40 transition-colors"
         >
           {sending ? "发布中..." : "推送到广场 ✨"}
         </button>

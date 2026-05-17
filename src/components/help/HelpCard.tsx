@@ -9,6 +9,7 @@ interface HelpPost {
   createdAt: string | Date;
   user: { id: string; name: string; avatar: string | null };
   _count?: { replies: number };
+  counselorSeenAt?: string | Date | null;
 }
 
 export function HelpCard({ post, classId, currentUserId }: { post: HelpPost; classId: string; currentUserId?: string }) {
@@ -16,7 +17,7 @@ export function HelpCard({ post, classId, currentUserId }: { post: HelpPost; cla
 
   return (
     <div className="relative group">
-      <Link href={`/class/${classId}/post/${post.id}`} className="block">
+      <Link href={`/class/${classId}/post/${post.id}`} className="block focus-visible:ring-2 focus-visible:ring-coral-300 focus-visible:ring-offset-2 rounded-2xl" aria-label={`帖子：${(post.content || "").slice(0, 30)}`}>
         <div className="bg-white/60 rounded-2xl p-3.5 space-y-2 shadow-soft hover:shadow-soft-lg transition-all duration-200 active:scale-[0.99]">
           <div className="flex items-center gap-2">
             {post.anonymous ? (
@@ -28,6 +29,9 @@ export function HelpCard({ post, classId, currentUserId }: { post: HelpPost; cla
             <span className="text-xs text-warm-300">
               {new Date(post.createdAt).toLocaleString("zh-CN", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" })}
             </span>
+            {isOwn && post.counselorSeenAt && (
+              <span className="text-[10px] text-mint-500 bg-mint-50 px-1.5 py-0.5 rounded-full ml-auto">辅导员已看到</span>
+            )}
           </div>
           <p className="text-sm text-warm-700">{post.content}</p>
           {(post._count?.replies ?? 0) > 0 && (

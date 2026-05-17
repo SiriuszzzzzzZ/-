@@ -72,8 +72,8 @@ export function MoodPicker({ classId, currentMood, onSelected }: Props) {
 
   return (
     <div className="absolute bottom-3 inset-x-0 px-5 z-10">
-      <p className="text-center text-[13px] text-white/50 mb-2.5 tracking-wider">
-        今天的天气是...
+      <p className="text-center text-sm text-white/65 mb-2.5 tracking-wider">
+        今天先点亮一个心情
       </p>
       <div className="flex gap-2 justify-center">
         {MOODS.map((m, i) => {
@@ -83,7 +83,8 @@ export function MoodPicker({ classId, currentMood, onSelected }: Props) {
               key={m.id}
               onClick={() => handlePick(m.id)}
               disabled={!!clicked}
-              className={`flex-1 max-w-[78px] flex flex-col items-center gap-1 py-3 px-1.5 rounded-[22px]
+              aria-label={`选择今天的心情：${m.label}`}
+              className={`flex-1 max-w-[84px] min-h-20 flex flex-col items-center gap-1 py-3 px-1.5 rounded-[22px]
                 border border-white/25 backdrop-blur-[6px] text-white cursor-pointer
                 transition-all duration-200
                 ${isClicked
@@ -97,7 +98,7 @@ export function MoodPicker({ classId, currentMood, onSelected }: Props) {
               <span className="text-[26px] transition-transform duration-250">
                 {m.emoji}
               </span>
-              <span className="text-[11px] opacity-80">{m.label}</span>
+              <span className="text-xs opacity-85">{m.label}</span>
             </button>
           );
         })}

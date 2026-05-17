@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { checkSyncTrigger } from "@/lib/growth";
+import { checkAndAwardBadge } from "@/lib/badges";
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -10,18 +11,23 @@ export async function POST(req: NextRequest) {
 
   const { toUserId, reason } = await req.json();
   if (!toUserId || !reason?.trim()) return NextResponse.json({ error: "缺少参数" }, { status: 400 });
+  if (toUserId === session.user.id) return NextResponse.json({ error: "不能点亮自己" }, { status: 400 });
 
-  const oneWeekAgo = new Date(Date.now() - 7 * 86400000);
-  const thisWeekCount = await db.growthMoment.count({
-    where: { fromUserId: session.user.id, createdAt: { gte: oneWeekAgo } },
+  // 每人每天最多点亮同一个人 1 次
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const existing = await db.growthMoment.findFirst({
+    where: { fromUserId: session.user.id, toUserId, createdAt: { gte: today } },
   });
-  if (thisWeekCount >= 1) {
-    return NextResponse.json({ error: "本周已点亮过，每周限点亮 1 次" }, { status: 400 });
+  if (existing) {
+    return NextResponse.json({ error: "今天已经给TA点亮过了" }, { status: 400 });
   }
 
   const moment = await db.growthMoment.create({
     data: { fromUserId: session.user.id, toUserId, reason },
   });
+
+  checkAndAwardBadge(toUserId, "GROWTH_COLLECTOR").catch(() => {});
 
   return NextResponse.json({ success: true, moment });
 }

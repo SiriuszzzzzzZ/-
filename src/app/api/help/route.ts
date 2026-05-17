@@ -9,7 +9,7 @@ export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) return NextResponse.json({ error: "未登录" }, { status: 401 });
 
-  const { classId, content, treehole, image } = await req.json();
+  const { classId, content, treehole, anonymous, image } = await req.json();
   if (!classId || !content?.trim()) return NextResponse.json({ error: "缺少参数" }, { status: 400 });
 
   try { await requireClassAccess(session.user.id, classId); }
@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
       type: helpType === "SKILL" ? "HELP_SKILL" : "HELP_EMOTION",
       content,
       image: image || null,
-      anonymous: helpType === "EMOTION",
+      anonymous: anonymous === true || helpType === "EMOTION",
     },
   });
 

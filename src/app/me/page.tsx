@@ -3,12 +3,15 @@ import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getGrowthTrajectory } from "@/lib/growth";
 import { computeSignals } from "@/lib/signals";
+import { getUserBadges } from "@/lib/badges";
 import { Avatar } from "@/components/ui/Avatar";
 import { NotificationList } from "@/components/ui";
+import { BadgeDisplay } from "@/components/ui/BadgeDisplay";
 import Link from "next/link";
 import { LowPresenceToggle } from "./LowPresenceToggle";
 import { SignOutButton } from "@/components/ui/SignOutButton";
 import { TopicListItem } from "@/components/post/TopicListItem";
+import { MoodInsight } from "@/components/me/MoodInsight";
 
 export default async function MePage() {
   const session = await getServerSession(authOptions);
@@ -17,31 +20,33 @@ export default async function MePage() {
 
   const isCounselor = user.role === "COUNSELOR";
   const trajectory = await getGrowthTrajectory(user.id);
+  const badges = await getUserBadges(user.id);
 
   // 通知 + 痕迹
   const weekAgo = new Date(Date.now() - 7 * 86400000);
-  const [newGrowth, repliedPosts, myShares, myParticles] = await Promise.all([
+  const [newGrowth, repliedToMe, myShares, myParticles] = await Promise.all([
     db.growthMoment.count({ where: { toUserId: user.id, createdAt: { gte: weekAgo } } }),
-    // 哪些求助帖收到了回复
+    // 所有我的帖子收到了谁的回复
     db.post.findMany({
-      where: { userId: user.id, type: { in: ["HELP_SKILL", "HELP_EMOTION"] } },
-      select: { id: true, classId: true, content: true },
-    }).then(async (myHelpPosts) => {
-      if (myHelpPosts.length === 0) return [];
-      return db.post.findMany({
-        where: { parentId: { in: myHelpPosts.map(p => p.id) }, userId: { not: user.id }, createdAt: { gte: weekAgo } },
-        select: { parentId: true },
-        distinct: ["parentId"],
-      }).then(replies => replies.map(r => {
-        const parent = myHelpPosts.find(p => p.id === r.parentId);
-        return { postId: parent!.id, classId: parent!.classId, content: parent!.content };
-      }));
+      where: { userId: user.id, parentId: null },
+      select: { id: true, classId: true, content: true, type: true },
+    }).then(async (myPosts) => {
+      if (myPosts.length === 0) return [];
+      const replies = await db.post.findMany({
+        where: { parentId: { in: myPosts.map(p => p.id) }, userId: { not: user.id }, createdAt: { gte: weekAgo } },
+        select: { parentId: true, userId: true, user: { select: { name: true } } },
+        distinct: ["parentId", "userId"],
+      });
+      return replies.map(r => {
+        const parent = myPosts.find(p => p.id === r.parentId);
+        return { postId: parent!.id, classId: parent!.classId, content: parent!.content, replyerName: r.user.name };
+      });
     }),
-    db.post.findMany({ where: { userId: user.id, type: "SHARE" }, orderBy: { createdAt: "desc" }, take: 5, select: { content: true, createdAt: true } }),
+    db.post.findMany({ where: { userId: user.id, type: "SHARE", parentId: null }, orderBy: { createdAt: "desc" }, take: 5, select: { content: true, createdAt: true } }),
     db.post.findMany({ where: { userId: user.id, type: "STATE_PARTICLE" }, orderBy: { createdAt: "desc" }, take: 5, select: { content: true, createdAt: true } }),
   ]);
 
-  const totalNotifications = newGrowth + repliedPosts.length;
+  const totalNotifications = newGrowth + repliedToMe.length;
 
   return (
     <div className="min-h-screen bg-cream">
@@ -54,19 +59,20 @@ export default async function MePage() {
               {isCounselor ? "辅导员" : "学生"}{user.signature ? ` · ${user.signature}` : ""}
             </p>
           </div>
+          <Link href="/me/settings" className="ml-auto text-white/50 hover:text-white/80 transition-colors text-lg" aria-label="设置">⚙</Link>
         </div>
       </header>
 
-      <main className="max-w-lg mx-auto px-4 -mt-2 pb-8 space-y-5">
+      <main className="max-w-lg md:max-w-3xl lg:max-w-4xl mx-auto px-4 -mt-2 pb-8 space-y-5">
         {/* 通知摘要 */}
         {totalNotifications > 0 && (
           <NotificationList notifications={[
             ...(newGrowth > 0 ? [{ type: "growth" as const, count: newGrowth }] : []),
-            ...repliedPosts.map((rp) => ({ type: "reply" as const, postId: rp.postId, classId: rp.classId, content: rp.content || "" })),
+            ...repliedToMe.map((rp) => ({ type: "reply" as const, postId: rp.postId, classId: rp.classId, content: `${rp.replyerName} 回复了你` })),
           ]} />
         )}
 
-        {isCounselor ? <CounselorWorkbench counselorId={user.id} /> : <StudentSpace user={user} trajectory={trajectory} myShares={myShares} myParticles={myParticles} />}
+        {isCounselor ? <CounselorWorkbench counselorId={user.id} /> : <StudentSpace user={user} trajectory={trajectory} myShares={myShares} myParticles={myParticles} badges={badges} />}
 
         <div className="pt-2">
           <SignOutButton />
@@ -77,7 +83,7 @@ export default async function MePage() {
 }
 
 // ═══════ 辅导员工作台 ═══════
-async function CounselorWorkbench({ counselorId }: { counselorId: string }) {
+async function CounselorWorkbench({ counselorId }: { counselorId: string; badges?: { type: string; level: number; progress: number }[] }) {
   const classes = await db.class.findMany({
     where: { counselorId },
     include: { _count: { select: { students: true } } },
@@ -166,16 +172,25 @@ async function CounselorWorkbench({ counselorId }: { counselorId: string }) {
 }
 
 // ═══════ 学生空间 ═══════
-async function StudentSpace({ user, trajectory, myShares, myParticles }: {
+async function StudentSpace({ user, trajectory, myShares, myParticles, badges }: {
   user: { classId: string | null; lowPresenceMode: boolean };
   trajectory: { growthReceived: number };
   myShares: { content: string | null; createdAt: Date }[];
   myParticles: { content: string | null; createdAt: Date }[];
+  badges: { type: string; level: number; progress: number }[];
 }) {
   const hasTraces = myShares.length > 0 || myParticles.length > 0;
 
   return (
     <>
+      {/* 徽章展示 */}
+      <div className="bg-white/50 rounded-2xl p-4 space-y-2">
+        <p className="text-xs text-warm-400">我的徽章</p>
+        <BadgeDisplay badges={badges} />
+      </div>
+
+      <MoodInsight />
+
       {/* 成长记录 */}
       <Link href="/me/growth" className="block">
         <div className="bg-gradient-to-r from-[#1A3050] via-[#2A4050] to-[#1E3A4A] rounded-3xl p-6 text-center hover:shadow-soft-lg transition-all duration-300 hover:scale-[1.01]">
@@ -186,6 +201,15 @@ async function StudentSpace({ user, trajectory, myShares, myParticles }: {
           <p className="text-white/60 text-sm mt-1">
             已收集 <span className="text-mint-300 font-semibold">{trajectory.growthReceived}</span> 颗星光
           </p>
+        </div>
+      </Link>
+
+      {/* 周报入口 */}
+      <Link href="/me/report" className="block">
+        <div className="bg-gradient-to-r from-mint-50 to-peach-50 rounded-2xl p-4 text-center hover:shadow-soft transition-all">
+          <span className="text-lg">📊</span>
+          <p className="text-sm font-medium text-warm-600 mt-1">本周成长周报</p>
+          <p className="text-[10px] text-warm-400">你的情绪足迹和互动记录</p>
         </div>
       </Link>
 

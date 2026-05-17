@@ -1,5 +1,3 @@
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { PostReplyForm } from "./PostReplyForm";
 import Link from "next/link";
@@ -9,9 +7,6 @@ export default async function PostDetailPage({
 }: {
   params: { classId: string; postId: string };
 }) {
-  const session = await getServerSession(authOptions);
-  const isCounselor = session?.user?.role === "COUNSELOR";
-
   const post = await db.post.findUnique({
     where: { id: params.postId },
     include: {
@@ -83,10 +78,8 @@ export default async function PostDetailPage({
         ))}
       </div>
 
-      {/* 回复表单（学生可回复技能求助，辅导员可回复所有） */}
-      {(post.type !== "HELP_EMOTION" || isCounselor) && (
-        <PostReplyForm classId={params.classId} postId={post.id} />
-      )}
+      {/* 回复表单 — 所有人都可以回复 */}
+      <PostReplyForm classId={params.classId} postId={post.id} parentType={post.type} />
     </div>
   );
 }

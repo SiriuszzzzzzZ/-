@@ -2,7 +2,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { computeSignals } from "@/lib/signals";
-import { getClassMoodTrend, checkConsecutiveRainy } from "@/lib/mood";
+import { getClassMoodTrend, checkConsecutiveRainy, detectCrisis, detectStormCrisisStudent, getWeekComparison } from "@/lib/mood";
 import { CounselorMoodPicker } from "@/components/counselor/CounselorMoodPicker";
 import Link from "next/link";
 
@@ -40,6 +40,8 @@ export default async function DashboardPage() {
         else { moodLabel = "混合"; moodTone = "neutral"; }
       }
 
+      const weekComp = await getWeekComparison(cls.id);
+
       return {
         id: cls.id, name: cls.name,
         studentCount: cls._count.students,
@@ -48,11 +50,39 @@ export default async function DashboardPage() {
         signalCount: signals.length,
         signals,
         rainy,
+        weekChange: weekComp.change,
       };
     })
   );
 
   const totalSignals = classSnapshots.reduce((s, c) => s + c.signalCount, 0);
+
+  // 危机检测
+  const allCrisisResults = await Promise.all(classes.map(async (c) => {
+    const [keywordCrisis, stormCrisis] = await Promise.all([detectCrisis(c.id), detectStormCrisisStudent(c.id)]);
+    return { classId: c.id, className: c.name, keywordCrisis, stormCrisis };
+  }));
+  const totalCrisis = allCrisisResults.reduce((s, r) => s + r.keywordCrisis.length + r.stormCrisis.length, 0);
+  const crisisCards = allCrisisResults.flatMap((r) => [
+    ...r.stormCrisis.map((s) => ({
+      id: `storm-${s.userId}`,
+      href: `/class/${r.classId}/student/${s.userId}`,
+      title: s.userName,
+      className: r.className,
+      reason: `连续 ${s.stormCount} 天风暴`,
+      status: s.stormCount >= 3 ? "建议跟进" : "待查看",
+      tone: "peach" as const,
+    })),
+    ...r.keywordCrisis.map((k) => ({
+      id: `keyword-${k.postId}`,
+      href: `/class/${k.classId}/post/${k.postId}`,
+      title: "匿名内容触发关键词",
+      className: r.className,
+      reason: "近 3 天出现需要留意的表达",
+      status: "待查看",
+      tone: "amber" as const,
+    })),
+  ]);
 
   // 树洞词云
   const treeholePosts = await db.post.findMany({
@@ -96,6 +126,35 @@ export default async function DashboardPage() {
           )}
         </div>
 
+        {/* 重点关注卡片 */}
+        {totalCrisis > 0 && (
+          <section className="mt-3 rounded-3xl border border-peach-300/40 bg-peach-400/15 px-4 py-3 animate-float-up" aria-label="近 3 天重点关注">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-xs text-peach-100 font-medium">近 3 天重点关注</p>
+                <p className="text-[11px] text-white/55 mt-0.5">先看原因，再决定是否跟进</p>
+              </div>
+              <Link href="/dashboard/signals" className="min-h-11 inline-flex items-center rounded-full bg-white/10 px-3 text-xs text-peach-100 hover:bg-white/20 transition-colors">
+                全部信号 →
+              </Link>
+            </div>
+            <div className="mt-3 grid gap-2 sm:grid-cols-2">
+              {crisisCards.slice(0, 4).map((card) => (
+                <Link key={card.id} href={card.href} className="block rounded-2xl bg-white/10 px-3 py-3 text-white/90 hover:bg-white/15 transition-colors">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <p className="text-sm font-medium">{card.title}</p>
+                      <p className="text-xs text-white/55 mt-0.5">{card.className} · {card.reason}</p>
+                    </div>
+                    <span className="shrink-0 rounded-full bg-peach-300/20 px-2 py-1 text-xs text-peach-100">{card.status}</span>
+                  </div>
+                  <p className="mt-2 text-xs text-peach-100">查看详情 →</p>
+                </Link>
+              ))}
+            </div>
+          </section>
+        )}
+
         {/* 信号速览横滚条 */}
         {allSignals.length > 0 && (
           <div className="flex gap-2 overflow-x-auto mt-4 pb-1 -mx-1 px-1">
@@ -118,7 +177,7 @@ export default async function DashboardPage() {
         )}
       </header>
 
-      <main className="max-w-lg mx-auto px-4 -mt-2 pb-8 space-y-6">
+      <main className="max-w-lg md:max-w-3xl lg:max-w-4xl mx-auto px-4 -mt-2 pb-8 space-y-6">
         {/* 辅导员自己的情绪 */}
         <section className="text-center py-3">
           <CounselorMoodPicker />
@@ -143,40 +202,18 @@ export default async function DashboardPage() {
                       : "bg-gradient-to-br from-[#1E3040] via-[#2D4058] to-[#3A4550]"
                 }`}
               >
-                {/* 随机光点模拟星星（仅在有打卡数据时显示） */}
+                {/* 确定性光点（种子=classId+j，避Math.random水合不一致） */}
                 {cls.todayCount > 0 && (
                   <div className="absolute inset-0 opacity-40">
                     {Array.from({ length: 20 }).map((_, j) => (
-                      <span
-                        key={j}
-                        className="absolute rounded-full bg-white"
-                        style={{
-                          width: `${Math.random() * 3 + 1}px`,
-                          height: `${Math.random() * 3 + 1}px`,
-                          left: `${Math.random() * 90 + 5}%`,
-                          top: `${Math.random() * 80 + 5}%`,
-                          opacity: Math.random() * 0.7 + 0.2,
-                        }}
-                      />
+                      <StarDot key={j} seed={`${cls.id}-${j}`} color="white" sizeRange={[1, 3]} leftRange={[5, 90]} topRange={[5, 80]} />
                     ))}
                   </div>
                 )}
-
-                {/* 情绪求助暗红点（仅本班） */}
                 {cls.todayEmotionHelp > 0 && (
                   <div className="absolute inset-0 opacity-50">
                     {Array.from({ length: cls.todayEmotionHelp }).map((_, j) => (
-                      <span
-                        key={`red-${j}`}
-                        className="absolute rounded-full bg-coral-400 shadow-glow-coral"
-                        style={{
-                          width: `${Math.random() * 3 + 2}px`,
-                          height: `${Math.random() * 3 + 2}px`,
-                          left: `${Math.random() * 70 + 15}%`,
-                          top: `${Math.random() * 60 + 20}%`,
-                          opacity: Math.random() * 0.5 + 0.3,
-                        }}
-                      />
+                      <StarDot key={`red-${j}`} seed={`${cls.id}-red-${j}`} color="coral" sizeRange={[2, 4]} leftRange={[15, 70]} topRange={[20, 60]} />
                     ))}
                   </div>
                 )}
@@ -190,17 +227,24 @@ export default async function DashboardPage() {
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="text-white/90 text-sm font-medium">{cls.moodLabel}</p>
+                    <p className="text-white/90 text-sm font-medium inline-flex items-center gap-1">
+                      {cls.moodLabel}
+                      {cls.weekChange !== 0 && (
+                        <span className={`text-[10px] ${cls.weekChange! > 0 ? "text-mint-300" : "text-coral-300"}`}>
+                          本周{cls.weekChange! > 0 ? "上升" : "下降"} {Math.abs(cls.weekChange!)}%
+                        </span>
+                      )}
+                    </p>
                     {cls.signalCount > 0 ? (
                       <span className="inline-block mt-1 px-2 py-0.5 rounded-full bg-peach-400/30 text-peach-200 text-[10px]">
-                        {cls.signalCount} 需关注
+                        {cls.signalCount} 个学生信号
                       </span>
                     ) : (
                       <span className="inline-block mt-1 text-white/30 text-[10px]">一切安稳</span>
                     )}
                     {cls.todayEmotionHelp > 0 && (
                       <span className="inline-block mt-1 ml-1 px-2 py-0.5 rounded-full bg-coral-400/30 text-coral-200 text-[10px]">
-                        🆘 {cls.todayEmotionHelp}
+                        情绪求助 {cls.todayEmotionHelp}
                       </span>
                     )}
                   </div>
@@ -240,5 +284,31 @@ export default async function DashboardPage() {
         )}
       </main>
     </div>
+  );
+}
+
+// 确定性伪随机 — 避免 Math.random() 导致服务端/客户端水合不一致
+function seedRandom(seed: string): number {
+  let h = 0;
+  for (let i = 0; i < seed.length; i++) {
+    h = (Math.imul(31, h) + seed.charCodeAt(i)) | 0;
+  }
+  return (h >>> 0) / 4294967296;
+}
+
+function StarDot({ seed, color, sizeRange, leftRange, topRange }: {
+  seed: string; color: string; sizeRange: [number, number]; leftRange: [number, number]; topRange: [number, number];
+}) {
+  const r = (n: number) => seedRandom(seed + String(n));
+  const size = r(0) * (sizeRange[1] - sizeRange[0]) + sizeRange[0];
+  const left = r(1) * (leftRange[1] - leftRange[0]) + leftRange[0];
+  const top = r(2) * (topRange[1] - topRange[0]) + topRange[0];
+  const opacity = r(3) * 0.5 + 0.3;
+  const colorClass = color === "coral" ? "bg-coral-400 shadow-glow-coral" : "bg-white";
+  return (
+    <span
+      className={`absolute rounded-full ${colorClass}`}
+      style={{ width: `${size}px`, height: `${size}px`, left: `${left}%`, top: `${top}%`, opacity }}
+    />
   );
 }

@@ -25,7 +25,7 @@ export function ShareQuick({ classId }: { classId: string }) {
     return (
       <button
         onClick={() => setOpen(true)}
-        className="w-full py-3 rounded-2xl bg-mint-50 text-sm text-mint-600 hover:bg-mint-100 hover:text-mint-700 transition-all duration-200 border border-mint-200 hover:border-mint-300 active:scale-[0.99]"
+        className="w-full min-h-11 py-3 rounded-2xl bg-mint-50 text-sm text-mint-600 hover:bg-mint-100 hover:text-mint-700 transition-all duration-200 border border-mint-200 hover:border-mint-300 active:scale-[0.99]"
       >
         ✨ 说点什么吧
       </button>
@@ -43,7 +43,9 @@ export function ShareQuick({ classId }: { classId: string }) {
 
   return (
     <div className="space-y-2">
+      <label htmlFor="share-content" className="visually-hidden">分享一件班级日常</label>
       <textarea
+        id="share-content"
         value={content}
         onChange={(e) => setContent(e.target.value)}
         placeholder="分享一件小事：听到一首好歌、看到一只猫、今天的心情..."
@@ -56,14 +58,14 @@ export function ShareQuick({ classId }: { classId: string }) {
         <div className="flex gap-2">
           <button
             onClick={() => setOpen(false)}
-            className="px-3 py-1 rounded-full text-xs text-warm-400 hover:text-warm-600"
+            className="min-h-11 px-3 py-1 rounded-full text-xs text-warm-400 hover:text-warm-600"
           >
             算了
           </button>
           <button
             onClick={submit}
             disabled={!content.trim()}
-            className="px-4 py-1.5 rounded-full bg-mint-400 text-white text-sm font-medium hover:bg-mint-500 disabled:opacity-40 transition-colors"
+            className="min-h-11 px-4 py-1.5 rounded-full bg-mint-400 text-white text-sm font-medium hover:bg-mint-500 disabled:opacity-40 transition-colors"
           >
             分享
           </button>

@@ -13,7 +13,7 @@ export function DashNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-sm border-t border-warm-200/50 px-3 py-2 flex justify-around max-w-lg mx-auto z-10">
+    <nav className="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-sm border-t border-warm-200/50 px-3 py-2 flex justify-around max-w-lg md:max-w-2xl mx-auto z-10">
       {NAV_ITEMS.map((item) => {
         const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
         return (

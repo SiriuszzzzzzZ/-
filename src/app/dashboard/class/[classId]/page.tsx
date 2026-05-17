@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { getClassMoodTrend, checkConsecutiveRainy, shouldShowMoodChart } from "@/lib/mood";
 import { computeSignals } from "@/lib/signals";
 import { SignalList } from "@/components/dashboard/SignalList";
+import { MoodAnalyzer } from "./MoodAnalyzer";
 
 export default async function ClassDetailPage({ params }: { params: { classId: string } }) {
   const session = await getServerSession(authOptions);
@@ -30,12 +31,13 @@ export default async function ClassDetailPage({ params }: { params: { classId: s
 
   return (
     <div className="min-h-screen bg-cream">
-      <header className="bg-cream/80 backdrop-blur-sm border-b border-warm-200/50 px-5 py-3">
+      <header className="bg-cream/80 backdrop-blur-sm border-b border-warm-200/50 px-5 py-3 flex items-center gap-3">
+        <a href="/dashboard" className="text-warm-400 hover:text-warm-600 text-sm">← 返回</a>
         <h1 className="font-semibold text-warm-800 text-lg">{classData.name}</h1>
         <p className="text-xs text-warm-400 mt-0.5">{classData._count.students} 名学生</p>
       </header>
 
-      <main className="max-w-lg mx-auto px-4 py-5 space-y-5">
+      <main className="max-w-lg md:max-w-3xl lg:max-w-4xl mx-auto px-4 py-5 space-y-5">
         {/* Stats row */}
         <div className="grid grid-cols-3 gap-3">
           <div className="bg-white/60 rounded-2xl p-3.5 text-center shadow-soft">
@@ -80,6 +82,8 @@ export default async function ClassDetailPage({ params }: { params: { classId: s
             <p className="text-sm text-warm-400 text-center py-4">数据不足，暂不展示</p>
           )}
         </div>
+
+        <MoodAnalyzer classId={params.classId} />
 
         {/* Alerts */}
         {emotionHelpCount > 0 && (

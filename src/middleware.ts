@@ -7,7 +7,7 @@ export default withAuth(
     const path = req.nextUrl.pathname;
 
     if (path.startsWith("/dashboard") && token?.role !== "COUNSELOR") {
-      return NextResponse.redirect(new URL("/class", req.url));
+      return NextResponse.redirect(new URL("/", req.url));
     }
 
     return NextResponse.next();

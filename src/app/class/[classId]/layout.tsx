@@ -32,7 +32,7 @@ export default async function ClassLayout({
         )}
       </header>
 
-      <main className="max-w-lg mx-auto px-4 py-5 pb-24">{children}</main>
+      <main className="max-w-lg md:max-w-3xl lg:max-w-4xl mx-auto px-4 py-5 pb-24">{children}</main>
 
       {/* Warm bottom nav */}
       <ClassNav classId={params.classId} />

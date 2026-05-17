@@ -61,7 +61,7 @@ export function TopicPublisher({ classId }: { classId: string }) {
     return (
       <button
         onClick={() => setOpen(true)}
-        className="w-full bg-coral-50 hover:bg-coral-100 text-coral-500 text-sm font-medium py-3 rounded-2xl transition-colors"
+        className="w-full min-h-11 bg-coral-50 hover:bg-coral-100 text-coral-500 text-sm font-medium py-3 rounded-2xl transition-colors"
       >
         ✦ 发布话题 / 微行动 / 公告
       </button>
@@ -85,21 +85,27 @@ export function TopicPublisher({ classId }: { classId: string }) {
         ))}
       </div>
 
+      <label htmlFor="topic-title" className="visually-hidden">话题标题</label>
       <input
+        id="topic-title"
         value={title}
         onChange={(e) => setTitle(e.target.value)}
         placeholder={topicType === "notice" ? "公告标题" : topicType === "micro" ? "微行动标题" : "话题标题"}
         className="w-full rounded-xl border border-warm-200 bg-white/50 px-4 py-2.5 text-sm text-warm-700 placeholder:text-warm-300 focus:outline-none focus:ring-2 focus:ring-coral-300"
         maxLength={50}
       />
+      <label htmlFor="topic-content" className="visually-hidden">话题补充描述</label>
       <textarea
+        id="topic-content"
         value={content}
         onChange={(e) => setContent(e.target.value)}
         placeholder="补充描述（可选）"
         className="w-full rounded-xl border border-warm-200 bg-white/50 px-4 py-2.5 text-sm text-warm-700 placeholder:text-warm-300 focus:outline-none focus:ring-2 focus:ring-coral-300 resize-none h-16"
         maxLength={200}
       />
+      <label htmlFor="topic-tags" className="visually-hidden">话题标签</label>
       <input
+        id="topic-tags"
         value={tags}
         onChange={(e) => setTags(e.target.value)}
         placeholder="标签，逗号分隔"
@@ -111,22 +117,22 @@ export function TopicPublisher({ classId }: { classId: string }) {
         <input type="file" accept="image/*" ref={fileRef} onChange={handleFile} className="hidden" />
         {image ? (
           <div className="relative inline-block">
-            <img src={image} alt="" className="w-20 h-20 rounded-xl object-cover" />
-            <button onClick={() => setImage(null)} className="absolute -top-1 -right-1 w-5 h-5 bg-white rounded-full text-xs shadow">×</button>
+            <img src={image} alt="已选择的话题配图" className="w-20 h-20 rounded-xl object-cover" />
+            <button aria-label="移除话题图片" onClick={() => setImage(null)} className="absolute -top-3 -right-3 tap-target bg-white rounded-full text-sm shadow">×</button>
           </div>
         ) : (
-          <button onClick={() => fileRef.current?.click()} className="text-xs text-warm-400 hover:text-warm-600 flex items-center gap-1">
+          <button type="button" aria-label="添加话题图片" onClick={() => fileRef.current?.click()} className="min-h-11 text-xs text-warm-400 hover:text-warm-600 flex items-center gap-1">
             📷 添加图片
           </button>
         )}
       </div>
 
       <div className="flex justify-end gap-2">
-        <button onClick={() => setOpen(false)} className="text-xs text-warm-400 px-3 py-1">取消</button>
+        <button onClick={() => setOpen(false)} className="min-h-11 text-xs text-warm-400 px-3 py-1">取消</button>
         <button
           onClick={publish}
           disabled={!title.trim() || sending}
-          className="px-4 py-1.5 rounded-2xl bg-coral-400 text-white text-sm font-medium hover:bg-coral-500 disabled:opacity-40 transition-colors"
+          className="min-h-11 px-4 py-1.5 rounded-2xl bg-coral-400 text-white text-sm font-medium hover:bg-coral-500 disabled:opacity-40 transition-colors"
         >
           {sending ? "发布中..." : "发布"}
         </button>

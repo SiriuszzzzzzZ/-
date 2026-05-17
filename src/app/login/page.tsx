@@ -33,10 +33,12 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-cream px-4 relative overflow-hidden">
-      {/* Decorative blobs */}
-      <div className="absolute -top-20 -right-20 w-64 h-64 rounded-full bg-coral-100/60 blur-3xl" />
-      <div className="absolute -bottom-16 -left-16 w-48 h-48 rounded-full bg-mint-100/60 blur-3xl" />
-      <div className="absolute top-1/3 right-1/4 w-32 h-32 rounded-full bg-peach-100/40 blur-2xl animate-fade-in" />
+      <div className="absolute inset-x-6 top-10 h-24 rounded-[2rem] border border-warm-100/70 bg-white/20 shadow-soft" aria-hidden="true" />
+      <div className="absolute left-8 top-16 h-20 w-1 rounded-full bg-peach-200/70" aria-hidden="true" />
+      <div className="absolute right-10 bottom-16 rotate-[-6deg] rounded-2xl border border-mint-100 bg-white/45 px-5 py-4 shadow-soft" aria-hidden="true">
+        <span className="block h-2 w-16 rounded-full bg-mint-100" />
+        <span className="mt-2 block h-2 w-10 rounded-full bg-peach-100" />
+      </div>
 
       <div className="w-full max-w-sm space-y-8 relative z-10">
         <div className="text-center space-y-3">
@@ -49,31 +51,41 @@ export default function LoginPage() {
 
         <form onSubmit={handleSubmit} className="bg-white/80 backdrop-blur-sm rounded-4xl shadow-soft-lg p-8 space-y-5">
           <div className="space-y-1">
-            <label className="block text-sm font-medium text-warm-600">邮箱</label>
+            <label htmlFor="login-email" className="block text-sm font-medium text-warm-600">邮箱</label>
             <input
+              id="login-email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="your@email.com"
-              className="w-full rounded-2xl border border-warm-200 bg-warm-50/50 px-4 py-2.5 text-sm text-warm-700 placeholder:text-warm-300 focus:outline-none focus:ring-2 focus:ring-coral-300 focus:border-transparent transition-shadow"
+              autoComplete="email"
+              required
+              aria-invalid={!!error}
+              aria-describedby={error ? "login-error" : undefined}
+              className="w-full min-h-11 rounded-2xl border border-warm-200 bg-warm-50/50 px-4 py-2.5 text-sm text-warm-700 placeholder:text-warm-300 focus:outline-none focus:ring-2 focus:ring-coral-300 focus:border-transparent transition-shadow"
             />
           </div>
           <div className="space-y-1">
-            <label className="block text-sm font-medium text-warm-600">密码</label>
+            <label htmlFor="login-password" className="block text-sm font-medium text-warm-600">密码</label>
             <input
+              id="login-password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="输入密码"
-              className="w-full rounded-2xl border border-warm-200 bg-warm-50/50 px-4 py-2.5 text-sm text-warm-700 placeholder:text-warm-300 focus:outline-none focus:ring-2 focus:ring-coral-300 focus:border-transparent transition-shadow"
+              autoComplete="current-password"
+              required
+              aria-invalid={!!error}
+              aria-describedby={error ? "login-error" : undefined}
+              className="w-full min-h-11 rounded-2xl border border-warm-200 bg-warm-50/50 px-4 py-2.5 text-sm text-warm-700 placeholder:text-warm-300 focus:outline-none focus:ring-2 focus:ring-coral-300 focus:border-transparent transition-shadow"
             />
           </div>
           {error && (
-            <p className="text-xs text-coral-500 bg-coral-50 px-3 py-2 rounded-2xl">{error}</p>
+            <p id="login-error" role="alert" className="text-xs text-coral-500 bg-coral-50 px-3 py-2 rounded-2xl">{error}</p>
           )}
           <button
             type="submit"
-            className="w-full bg-coral-400 hover:bg-coral-500 text-white font-medium py-2.5 px-4 rounded-2xl transition-all duration-200 hover:shadow-soft active:scale-[0.98]"
+            className="w-full min-h-11 bg-coral-400 hover:bg-coral-500 text-white font-medium py-2.5 px-4 rounded-2xl transition-all duration-200 hover:shadow-soft active:scale-[0.98]"
           >
             推开这扇门
           </button>

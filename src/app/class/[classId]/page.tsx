@@ -1,7 +1,9 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
+import Link from "next/link";
 import { getClassMoodTrend, checkConsecutiveRainy } from "@/lib/mood";
+import { getMonthlySyncPeers } from "@/lib/sync";
 import { StarrySky } from "@/components/sky";
 import { MoodPicker } from "@/components/mood/MoodPicker";
 import { ClassPulse } from "@/components/mood/ClassPulse";
@@ -22,13 +24,30 @@ export default async function ClassPage({ params }: { params: { classId: string 
     select: { mood: true },
   });
 
-  const [particles, helpPosts, sharePosts, topics, goodDeeds, moodTrend, todayMoodCount, rainyWarning, todayEmotionHelp] =
+  const totalMoodEntries = isCounselor ? 1 : await db.moodEntry.count({ where: { userId: currentUserId } });
+  const isFirstTime = !isCounselor && totalMoodEntries === 0;
+
+  const syncPeers = isCounselor ? [] : await getMonthlySyncPeers(currentUserId, params.classId);
+
+  const [particles, helpPosts, sharePosts, topicCounts, topics, goodDeeds, microActionCounts, moodTrend, todayMoodCount, rainyWarning, todayEmotionHelp] =
     await Promise.all([
       db.post.findMany({ where: { classId: params.classId, type: "STATE_PARTICLE", expiresAt: { gt: now } }, include: { user: { select: { id: true, name: true, avatar: true } } }, orderBy: { createdAt: "desc" }, take: 20 }),
-      db.post.findMany({ where: { classId: params.classId, type: { in: ["HELP_SKILL", "HELP_EMOTION"] }, treehole: false }, include: { user: { select: { id: true, name: true, avatar: true } }, _count: { select: { replies: true } } }, orderBy: { createdAt: "desc" }, take: 15 }),
-      db.post.findMany({ where: { classId: params.classId, type: "SHARE" }, include: { user: { select: { id: true, name: true, avatar: true } }, _count: { select: { replies: true } } }, orderBy: { createdAt: "desc" }, take: 10 }),
+      db.post.findMany({ where: { classId: params.classId, type: { in: ["HELP_SKILL", "HELP_EMOTION"] }, treehole: false, parentId: null }, select: { id: true, type: true, content: true, anonymous: true, createdAt: true, counselorSeenAt: true, user: { select: { id: true, name: true, avatar: true } }, _count: { select: { replies: true } } }, orderBy: { createdAt: "desc" }, take: 15 }),
+      db.post.findMany({ where: { classId: params.classId, type: "SHARE", parentId: null }, include: { user: { select: { id: true, name: true, avatar: true } }, _count: { select: { replies: true } } }, orderBy: { createdAt: "desc" }, take: 10 }),
+      // 话题互动统计
+      db.post.groupBy({ by: ["topicId"], where: { classId: params.classId, type: "TOPIC_POST", topicId: { not: null } }, _count: { id: true } }),
       db.topic.findMany({ where: { classId: params.classId }, orderBy: { createdAt: "desc" }, take: 5 }),
       db.post.findMany({ where: { classId: params.classId, type: "GOOD_DEED" }, include: { user: { select: { id: true, name: true, avatar: true } } }, orderBy: { createdAt: "desc" }, take: 5 }),
+      // 微行动参与人数
+      db.topic.findMany({ where: { classId: params.classId, isMicroAction: true }, select: { id: true } }).then(async (micros) => {
+        if (micros.length === 0) return new Map<string, number>();
+        const counts = await db.post.groupBy({ by: ["topicId", "userId"], where: { topicId: { in: micros.map(m => m.id) }, type: "TOPIC_POST" }, _count: { userId: true } });
+        const map = new Map<string, number>();
+        for (const c of counts) {
+          if (c.topicId) map.set(c.topicId, (map.get(c.topicId) || 0) + 1);
+        }
+        return map;
+      }),
       getClassMoodTrend(params.classId, 7),
       db.moodEntry.count({ where: { classId: params.classId, date: { gte: today } } }),
       checkConsecutiveRainy(params.classId),
@@ -43,6 +62,9 @@ export default async function ClassPage({ params }: { params: { classId: string 
     dominantMood = top.label;
   }
 
+  const topicInteractionCounts = new Map<string, number>();
+  for (const tc of topicCounts) { if (tc.topicId) topicInteractionCounts.set(tc.topicId, tc._count.id); }
+
   return (
     <div className="space-y-5">
       {/* 星空区 */}
@@ -53,6 +75,11 @@ export default async function ClassPage({ params }: { params: { classId: string 
       </section>
 
       <ClassPulse todayMoodCount={todayMoodCount} rainyWarning={rainyWarning} dominantMood={dominantMood} />
+      <div className="text-center">
+        <Link href={`/class/${params.classId}/activity`} className="text-[10px] text-warm-300 hover:text-coral-400 transition-colors">
+          📜 班级动态 →
+        </Link>
+      </div>
 
       <main className="px-4 pb-6 space-y-6">
         {isCounselor ? (
@@ -60,11 +87,13 @@ export default async function ClassPage({ params }: { params: { classId: string 
             classId={params.classId} currentUserId={currentUserId}
             todayMoodCount={todayMoodCount} dominantMood={dominantMood} rainyWarning={rainyWarning}
             particles={particles} sharePosts={sharePosts} topics={topics} helpPosts={helpPosts} goodDeeds={goodDeeds}
+            topicInteractionCounts={topicInteractionCounts} microActionCounts={microActionCounts}
           />
         ) : (
           <StudentClassView
             classId={params.classId} currentUserId={currentUserId}
             particles={particles} sharePosts={sharePosts} topics={topics} helpPosts={helpPosts} goodDeeds={goodDeeds}
+            syncPeers={syncPeers} topicInteractionCounts={topicInteractionCounts} isFirstTime={isFirstTime} hasMood={!!todayMoodEntry} microActionCounts={microActionCounts}
           />
         )}
       </main>

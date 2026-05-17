@@ -3,9 +3,8 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
 }
 
 model User {
@@ -29,6 +28,7 @@ model User {
   growthGiven      GrowthMoment[] @relation("GrowthFrom")
   growthReceived   GrowthMoment[] @relation("GrowthTo")
   bountyClaims     BountyTask[]   @relation("ClaimedBy")
+  badges           Badge[]
 }
 
 model Class {
@@ -67,12 +67,14 @@ model Post {
   anonymous Boolean   @default(false)
   treehole  Boolean   @default(false)
   parentId  String?
+  topicId   String?
   parent    Post?     @relation("PostReplies", fields: [parentId], references: [id])
   replies   Post[]    @relation("PostReplies")
   image     String?
-  claimed   Boolean   @default(false)
-  createdAt DateTime  @default(now())
-  expiresAt DateTime?
+  claimed         Boolean   @default(false)
+  counselorSeenAt DateTime?
+  createdAt       DateTime  @default(now())
+  expiresAt       DateTime?
 }
 
 model GrowthMoment {
@@ -96,6 +98,38 @@ model BountyTask {
   claimedBy    User?   @relation("ClaimedBy", fields: [claimedById], references: [id])
   status       String  @default("OPEN")
   createdAt    DateTime @default(now())
+}
+
+model MoodAnalysis {
+  id        String   @id @default(cuid())
+  classId   String
+  summary   String
+  trend     String
+  risk      String
+  dominantMood String
+  changeRate   Int
+  suggestions  String   // JSON array stored as string
+  createdAt DateTime @default(now())
+}
+
+model Whisper {
+  id         String   @id @default(cuid())
+  fromUserId String
+  toUserId   String
+  content    String
+  createdAt  DateTime @default(now())
+}
+
+model Badge {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  type      String   // HELPER / TOPIC_STAR / GROWTH_COLLECTOR / TREEHOLE_FRIEND / STREAK_KEEPER
+  level     Int      @default(1) // 1=初级 2=中级 3=高级 4=星辰
+  progress  Int      @default(0) // 距离下一级还需次数
+  createdAt DateTime @default(now())
+
+  @@unique([userId, type])
 }
 
 model Topic {

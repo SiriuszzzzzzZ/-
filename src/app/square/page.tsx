@@ -2,8 +2,10 @@
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { SquareTopicForm } from "@/components/counselor/SquareTopicForm";
 import { ConfirmPanel } from "@/components/ui";
+import { GoodDeedItem } from "@/components/help/GoodDeedItem";
 
 const TAGS = ["考研心情", "第一次", "低谷", "温暖瞬间", "成长记录"];
 
@@ -19,7 +21,7 @@ interface SquareTopic {
 }
 interface GoodDeed {
   id: string; content: string | null; createdAt: string;
-  user: { name: string };
+  user: { id: string; name: string; avatar: string | null };
 }
 
 export default function SquarePage() {
@@ -35,6 +37,7 @@ export default function SquarePage() {
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   const isCounselor = session?.user?.role === "COUNSELOR";
+  const stableBackHref = isCounselor ? "/dashboard" : session?.user?.classId ? `/class/${session.user.classId}` : "/";
 
   async function fetchData() {
     const res = await fetch("/api/square");
@@ -78,7 +81,7 @@ export default function SquarePage() {
       {/* 跨班星光墙 header */}
       <header className="relative overflow-hidden bg-gradient-to-b from-[#1C2840] via-[#2D3550] to-cream px-5 pt-8 pb-10">
         <div className="relative z-10">
-          <button onClick={() => router.back()} className="text-white/50 hover:text-white/80 text-sm mb-2 transition-colors">← 返回</button>
+          <Link href={stableBackHref} className="inline-flex min-h-11 items-center text-white/65 hover:text-white text-sm mb-1 transition-colors" aria-label="返回上一层页面">← 返回</Link>
           <h1 className="text-xl font-semibold text-white">年级广场</h1>
           <p className="text-sm text-white/60 mt-1">
             {classCount > 0
@@ -99,7 +102,7 @@ export default function SquarePage() {
         </div>
       </header>
 
-      <main className="max-w-lg mx-auto px-4 -mt-4 pb-24 space-y-5">
+      <main className="max-w-lg md:max-w-3xl lg:max-w-4xl mx-auto px-4 -mt-4 pb-24 space-y-5">
         {/* 标签筛选 — 暖色 pill */}
         <div className="flex gap-2 overflow-x-auto pb-2 pt-2">
           <button
@@ -140,13 +143,14 @@ export default function SquarePage() {
                   <div
                     key={t.id}
                     onClick={() => router.push(`/class/${t.classId}/topic/${t.id}`)}
-                    className="bg-white/70 rounded-2xl pl-4 pr-5 py-4 hover:shadow-soft-lg transition-all duration-300 cursor-pointer relative group animate-float-up"
-                    style={{ animationDelay: `${i * 60}ms` }}
+                    role="link"
+                    tabIndex={0}
+                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); router.push(`/class/${t.classId}/topic/${t.id}`); } }}
+                    className="bg-white/70 rounded-2xl px-5 py-4 hover:shadow-soft-lg transition-all duration-300 cursor-pointer relative group animate-float-up border-t-2 focus:outline-none focus:ring-2 focus:ring-coral-300"
+                    style={{ animationDelay: `${i * 60}ms`, borderTopColor: classColor(t.classId).includes("coral") ? "#FF7A6B" : classColor(t.classId).includes("mint") ? "#4ECDC4" : classColor(t.classId).includes("peach") ? "#FFB355" : "#B8A58A" }}
                   >
-                    {/* 左侧班级色点 + 竖线 */}
-                    <div className="absolute left-0 top-3 bottom-3 w-1 rounded-r-full" style={{ backgroundColor: classColor(t.classId).includes("coral") ? "#FF7A6B" : classColor(t.classId).includes("mint") ? "#4ECDC4" : classColor(t.classId).includes("peach") ? "#FFB355" : "#B8A58A" }} />
-
-                    <div className="flex items-center gap-2 mb-1.5 pl-1">
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <span className={`w-2 h-2 rounded-full inline-block ${classColor(t.classId)}`} />
                       <span className="text-xs">
                         {t.isNotice ? "📢" : t.isMicroAction ? "🏃" : "💬"}
                       </span>
@@ -155,9 +159,9 @@ export default function SquarePage() {
                       </span>
                       <span className="text-[10px] text-warm-300 ml-auto">来自 {t.class.name}</span>
                     </div>
-                    <h3 className="text-sm font-medium text-warm-800 mb-1 pl-1">{t.title}</h3>
+                    <h3 className="text-sm font-medium text-warm-800 mb-1">{t.title}</h3>
                     {t.tags && (
-                      <div className="flex gap-1 flex-wrap pl-1">
+                      <div className="flex gap-1 flex-wrap">
                         {t.tags.split(",").filter(Boolean).map((tag) => (
                           <span key={tag} className="text-[10px] text-coral-400 bg-coral-50 px-2 py-0.5 rounded-full">
                             #{tag}
@@ -169,7 +173,8 @@ export default function SquarePage() {
                     {isCounselor && (
                       <button
                         onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(t.id); }}
-                        className="absolute top-2 right-2 w-6 h-6 rounded-full bg-white/80 text-warm-400 hover:text-coral-500 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center text-xs"
+                        aria-label={`删除话题：${t.title}`}
+                        className="absolute top-1 right-1 tap-target rounded-full bg-white/80 text-warm-400 hover:text-coral-500 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-all flex items-center justify-center text-base"
                       >×</button>
                     )}
                   </div>
@@ -199,13 +204,8 @@ export default function SquarePage() {
                 </div>
                 <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4">
                   {goodDeeds.map((gd) => (
-                    <div
-                      key={gd.id}
-                      className="flex-shrink-0 w-44 bg-mint-50 rounded-2xl px-4 py-3 animate-float-up"
-                    >
-                      <span className="text-lg">🎁</span>
-                      <p className="text-sm text-warm-600 mt-1">{gd.content}</p>
-                      <p className="text-xs text-warm-400 mt-1.5">{gd.user.name} · {new Date(gd.createdAt).toLocaleDateString("zh-CN")}</p>
+                    <div key={gd.id} className="flex-shrink-0 w-56">
+                      <GoodDeedItem deed={gd} currentUserId={session?.user?.id || ""} />
                     </div>
                   ))}
                 </div>
@@ -218,7 +218,8 @@ export default function SquarePage() {
         {isCounselor && !showForm && (
           <button
             onClick={openForm}
-            className="fixed bottom-20 right-5 w-12 h-12 rounded-full bg-coral-400 text-white text-2xl shadow-lg hover:bg-coral-500 hover:shadow-xl hover:scale-105 active:scale-95 transition-all duration-200 z-30 flex items-center justify-center"
+            aria-label="发布新话题到广场"
+            className="fixed bottom-20 right-5 tap-target rounded-full bg-coral-400 text-white text-2xl shadow-lg hover:bg-coral-500 hover:shadow-xl hover:scale-105 active:scale-95 transition-all duration-200 z-30 flex items-center justify-center"
           >+</button>
         )}
         {showForm && (

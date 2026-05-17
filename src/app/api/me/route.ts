@@ -14,6 +14,17 @@ export async function PATCH(req: NextRequest) {
   if (body.themeColor) data.themeColor = body.themeColor;
   if (body.signature !== undefined) data.signature = body.signature;
   if (body.avatar) data.avatar = body.avatar;
+  if (body.name) data.name = body.name;
+
+  // 修改密码
+  if (body.newPassword) {
+    const bcrypt = await import("bcryptjs");
+    const user = await db.user.findUnique({ where: { id: session.user.id } });
+    if (!user?.password) return NextResponse.json({ error: "无法修改密码" }, { status: 400 });
+    const valid = await bcrypt.compare(body.currentPassword || "", user.password);
+    if (!valid) return NextResponse.json({ error: "当前密码错误" }, { status: 400 });
+    data.password = await bcrypt.hash(body.newPassword, 10);
+  }
 
   await db.user.update({ where: { id: session.user.id }, data });
   return NextResponse.json({ success: true });

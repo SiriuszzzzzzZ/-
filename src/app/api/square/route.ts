@@ -17,7 +17,7 @@ export async function GET() {
 
   const recentGoodDeeds = await db.post.findMany({
     where: { type: "GOOD_DEED", treehole: false },
-    include: { user: { select: { name: true } } },
+    include: { user: { select: { id: true, name: true, avatar: true } } },
     orderBy: { createdAt: "desc" },
     take: 10,
   });

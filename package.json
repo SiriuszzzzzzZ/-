@@ -2,6 +2,8 @@
   "name": "counselor-platform",
   "version": "0.1.0",
   "private": true,
+  "description": "同窗小栈 — 低压力校园关系基础设施。班级星空、匿名树洞、星光收集、AI情绪洞察。",
+  "license": "MIT",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -15,15 +17,18 @@
     "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "^5.22.0",
     "bcryptjs": "^3.0.3",
+    "docx": "^9.6.1",
     "dotenv": "^17.4.2",
     "next": "14.2.35",
     "next-auth": "^4.24.14",
+    "pptxgenjs": "^4.0.1",
     "prisma": "^5.22.0",
     "react": "^18",
     "react-dom": "^18",
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@playwright/test": "^1.60.0",
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^20",
     "@types/react": "^18",
